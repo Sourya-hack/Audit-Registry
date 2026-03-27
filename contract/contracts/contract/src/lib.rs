@@ -1,12 +1,11 @@
 #![no_std]
 
-use soroban_sdk::{contract, contractimpl, contracttype, Env, Symbol, Vec, String};
+use soroban_sdk::{contract, contractimpl, contracttype, Env, Vec, String, Symbol};
 
 #[derive(Clone)]
 #[contracttype]
-pub struct AuditRecord {
+pub struct Audit {
     pub auditor: String,
-    pub timestamp: u64,
     pub report_hash: String,
 }
 
@@ -16,34 +15,31 @@ pub struct AuditRegistry;
 #[contractimpl]
 impl AuditRegistry {
 
-    // Store key for all audit records
-    fn get_storage_key() -> Symbol {
-        Symbol::new("AUDITS")
-    }
-
-    // Add a new audit record
+    // Add audit record
     pub fn add_audit(env: Env, auditor: String, report_hash: String) {
-        let mut audits: Vec<AuditRecord> = env
+        let key = Symbol::new(&env, "AUDITS");
+
+        let mut audits: Vec<Audit> = env
             .storage()
             .instance()
-            .get(&Self::get_storage_key())
+            .get(&key)
             .unwrap_or(Vec::new(&env));
 
-        let record = AuditRecord {
+        audits.push_back(Audit {
             auditor,
-            timestamp: env.ledger().timestamp(),
             report_hash,
-        };
+        });
 
-        audits.push_back(record);
-        env.storage().instance().set(&Self::get_storage_key(), &audits);
+        env.storage().instance().set(&key, &audits);
     }
 
-    // Get all audit records
-    pub fn get_audits(env: Env) -> Vec<AuditRecord> {
+    // Get all audits
+    pub fn get_audits(env: Env) -> Vec<Audit> {
+        let key = Symbol::new(&env, "AUDITS");
+
         env.storage()
             .instance()
-            .get(&Self::get_storage_key())
+            .get(&key)
             .unwrap_or(Vec::new(&env))
     }
 }
